@@ -1,0 +1,155 @@
+# Functional homodonty example
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+
+# Read in & sort data ####
+
+# read in whole dataframe 
+load("../residual_examples/all_teeth.Rdat") # loads the all.teeth dataframe
+# THIS IS A DATAFRAME THAT IS ALREADY NAMED AND FORMATTED CORRECTLY
+
+# extract only dentition from one jaw
+teeth <- dplyr::filter(all.teeth, 
+                Species == "Ophiodon elongatus",
+                Jaw.ID == "Lower Jaw")
+
+# Plot raw data ####
+color <- "darkgreen"
+p1 <- ggplot(teeth, aes(x = Tooth.Position, y = Stress)) +
+  geom_hline(yintercept = median(teeth$Stress), color = grey(0.4, alpha = 0.8), lwd = 1.5) +
+  geom_point(size = 5, color = alpha(color, 0.5)) +
+  geom_point(size = 5, pch = 1, color = alpha(color, 0.9)) +
+  ylab(expression(paste("Stress (N" %.% m^-2, ")"))) +
+  xlab("Jaw position (m from joint)") +
+  ggtitle(expression(italic("Ophiodon elongatus"))) +
+  scale_y_continuous(labels = function(x) format(x, scientific = TRUE))
+
+
+# Normalize stress and jaw position for comparing across individuals ####
+# divide tooth stress by median stress to get stress in units of medians
+teeth$Stress.norm <- teeth$Stress / median(teeth$Stress)
+
+# divide position by jaw length to get position as proportion of jaw 
+teeth$Position.norm <- teeth$Tooth.Position / teeth$Jaw.length ##error happens here, Error in `$<-.data.frame`(`*tmp*`, Position.norm, value = numeric(0)) : 
+#replacement has 0 rows, data has 12
+
+# Fit stress as a function of jaw position ####
+log.fit <- lm(data = teeth, log(Stress.norm) ~ log(Position.norm))
+
+# Check for outliers ####
+# run influence.measures on the log fit
+potential.outliers <- summary(influence.measures(log.fit))
+# this function uses 6 difference metrics for outlier estimation
+# for each metric, a value > 1 or < -1 is an outlier
+
+# to be conservative, we'll only count points that are outliers in over half the
+# tests (> 3)
+# sum up outlier metric counts
+outlier.sum <- rowSums(abs(potential.outliers) > 1)
+
+# find which are counted as outliers by more than half the tests
+outlier.values <- names(outlier.sum)[which(outlier.sum > 5)] %>% as.numeric()
+
+# If outliers exist, fit model without outliers ####
+if (length(outlier.values) != 0) {
+  new.teeth <- teeth[-outlier.values, ]
+  log.fit <- lm(data = new.teeth, log(Stress.norm) ~ log(Position.norm))
+}
+
+# Plot normalized values + fitted values ####
+# dataframe of positions to predict
+position.df <- data.frame(Position.norm = seq(min(teeth$Position.norm),
+                                              max(teeth$Position.norm),
+                                              length.out = 1000))
+
+# datafrom of positions & predicted values
+fit.df <- data.frame(Position.norm = position.df$Position.norm,
+                     fitted.values = predict(log.fit, newdata = position.df) %>% 
+                       exp())
+rsq <- round(summary(log.fit)$r.squared, digits = 2)
+pval <- round(summary(log.fit)$coefficients[2, 4], digits = 2)
+rsq.label <- bquote(R^2 == .(rsq))
+pval.label <- bquote(italic(p) == .(pval))
+
+plot.label <- expression(paste(R^2 == 0.07, ", ", italic(p) == 0.40))
+p2 <- ggplot(teeth, aes(x = Position.norm, y = Stress.norm)) +
+  geom_line(data = fit.df, aes(x = Position.norm, y = fitted.values),
+            color = alpha("darkblue", 0.8), lty = 2, lwd = 1.5) +
+  geom_hline(yintercept = 1, color = grey(0.4, alpha = 0.8), lwd = 1.5) +
+  geom_point(size = 5, color = alpha(color, 0.5)) +
+  geom_point(size = 5, pch = 1, color = alpha(color, 0.9)) +
+  ylab(expression(paste("Normalized stress"~(sigma / sigma[med])))) +
+  xlab("Relative jaw position") +
+  annotate("text", x = 0.75, y = 2.8,
+           label = plot.label,
+           size = 6); p2
+
+
+# Get residuals from fitted values ####
+# if position is significant, use fitted values...
+if(summary(log.fit)$coefficients[2, 4] < 0.05) { 
+  fitted.values <- predict(log.fit,
+                           data.frame(Position.norm = teeth$Position.norm))
+  residuals <- teeth$Stress.norm - exp(fitted.values)
+} else { # otherwise, just use median stress
+  residuals <- teeth$Stress.norm - median(teeth$Stress.norm)
+}
+
+# make dataframe
+residuals.df <- data.frame(position = teeth$Position.norm,
+                           residuals = residuals)
+
+# And plot residuals ####
+if (summary(log.fit)$coefficients[2, 4] < 0.05) {
+  hline <- geom_hline(yintercept = 0, lty = 2, lwd = 1.5,
+                      color = alpha("darkblue", 0.8))
+} else {
+  hline <- geom_hline(yintercept = 0, lty = 1, lwd = 1.5,
+                      color = grey(0.4, 0.8))
+}
+
+p3 <- ggplot(residuals.df, aes(x = position, y = residuals)) +
+  ylim(c(-3, 3)) +
+  hline +
+  geom_hline(yintercept = c(-1, 1), lty = 2, lwd = 0.9, color = grey(0.8, 0.8)) +
+  geom_point(size = 5, color = alpha(color, 0.5)) +
+  geom_point(size = 5, pch = 1, color = alpha(color, 0.9)) +
+  ylab(expression(paste("Residual stress"~(actual - fitted)))) +
+  geom_text(aes(
+    x = .77,
+    y = 1.5,
+    label = 'Idealized homodont'
+  ),
+  check_overlap = TRUE
+  ) +
+  geom_segment(aes(
+    x = 0.77,
+    xend = .75,
+    y = 1.35,
+    yend = 0.1
+  ),
+  size = .5,
+  arrow = arrow(type = "closed",
+                length = unit(0.02,
+                              units = "npc"))
+  ) +
+  xlab("Relative jaw position")
+
+ggsave(p1 + theme_light(base_size = 12), 
+       width = 7, height = 4, 
+       filename = "RES_ophiodon_01raw.png")
+
+ggsave(p2 + theme_light(base_size = 12), 
+       width = 7, height = 4, 
+       filename = "RES_ophiodon_02norm.png")
+
+ggsave(p3 + theme_light(base_size = 12), 
+       width = 7, height = 4, 
+       filename = "RES_ophiodon_03final.png")
+
+p4 <- gridExtra::grid.arrange(ncol = 1,
+                              p1 + theme_light(base_size = 12), 
+                              p2 + theme_light(base_size = 12), 
+                              p3 + theme_light(base_size = 12))
+#ggsave(p4, filename = "residual_steps_ophiodon.png",width = 8, height = 10)
