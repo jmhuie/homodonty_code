@@ -6,9 +6,9 @@ source("bootstrap_median_residuals.R")
 # run the function on the master_dentition.csv dataset from the paper
 example_teeth <- bootstrap_median_residuals(bootstraps = 1000,
                                    dentition_file = "master_dentition.csv",
-                                   stress_column = 6,
-                                   position_column = 3,
-                                   jawlength_column = 9)
+                                   stress_column = 10,
+                                   position_column = 6,
+                                   jawlength_column = 4)
 # we have five things here:
 # 1. the bootstrapped residuals
 summary(example_teeth)
