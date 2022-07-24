@@ -258,7 +258,7 @@
       <item row="2" column="1">
        <widget class="QCheckBox" name="PoscheckBox">
         <property name="text">
-         <string>Flip tooth position</string>
+         <string>Swap out-lever and tooth position</string>
         </property>
         <property name="toolTip">
          <string>Out-lever lines should connect the jaw joint to the tip of the tooth. If they connect the base of the tooth, check this box.</string>
