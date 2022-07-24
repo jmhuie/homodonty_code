@@ -376,13 +376,13 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     SegmentNameArray.SetName("Tooth ID")
     
     JawLengthArray = vtk.vtkFloatArray()
-    JawLengthArray.SetName("Jaw Length")  
+    JawLengthArray.SetName("Jaw Length (mm)")  
    
     RelPosArray = vtk.vtkFloatArray()
     RelPosArray.SetName("Rel Position")   
    
     PositionArray = vtk.vtkFloatArray()
-    PositionArray.SetName("Position")
+    PositionArray.SetName("Position (mm)")
    
     SurfaceAreaArray = vtk.vtkFloatArray()
     SurfaceAreaArray.SetName("Surface Area (mm^2)")
@@ -618,13 +618,11 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
       tableNode.AddColumn(SpeciesArray)
       tableNode.SetColumnDescription(SpeciesArray.GetName(), "Species")
 
-    if jawID != "":
-      tableNode.AddColumn(JawIDArray)
-      tableNode.SetColumnDescription(JawIDArray.GetName(), "If upper or lower jaw")
+    tableNode.AddColumn(JawIDArray)
+    tableNode.SetColumnDescription(JawIDArray.GetName(), "If upper or lower jaw")
    
-    if side != "":    
-      tableNode.AddColumn(SideArray)
-      tableNode.SetColumnDescription(SideArray.GetName(), "Side of face that the jaw is on")  
+    tableNode.AddColumn(SideArray)
+    tableNode.SetColumnDescription(SideArray.GetName(), "Side of face that the jaw is on")  
         
     tableNode.AddColumn(JawLengthArray)
     tableNode.SetColumnDescription(JawLengthArray.GetName(), "Jaw Length")
@@ -634,7 +632,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     tableNode.SetColumnDescription(SegmentNameArray.GetName(), "Tooth segment name")
     
     tableNode.AddColumn(PositionArray)
-    tableNode.SetColumnDescription(PositionArray.GetName(), "Distance between the based of the tooth and the jaw joint")
+    tableNode.SetColumnDescription(PositionArray.GetName(), "Distance between the base of the tooth and the jaw joint")
     tableNode.SetColumnUnitLabel(PositionArray.GetName(), "mm")  # TODO: use length unit
     
     #tableNode.AddColumn(RelPosArray)
