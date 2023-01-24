@@ -7,10 +7,150 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>538</height>
+    <height>540</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="ctkCollapsibleButton" name="advancedCollapsibleButton">
+     <property name="text">
+      <string>Metadata</string>
+     </property>
+     <property name="collapsed">
+      <bool>false</bool>
+     </property>
+     <layout class="QFormLayout" name="formLayout_3">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="toolTip">
+         <string>Enter name of the species that the teeth belongs to.</string>
+        </property>
+        <property name="text">
+         <string>Species:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="SpecieslineEdit">
+        <property name="toolTip">
+         <string>Enter name of the species that the teeth belongs to.</string>
+        </property>
+        <property name="text">
+         <string>Enter species name</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="toolTip">
+         <string>Select whether the teeth are from the lower or upper jaw.</string>
+        </property>
+        <property name="text">
+         <string>Jaw ID:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QFrame" name="frame_4">
+        <layout class="QGridLayout" name="gridLayout_8">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>0</number>
+         </property>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="LowerradioButton">
+           <property name="text">
+            <string>Lower Jaw</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="UpperradioButton">
+           <property name="text">
+            <string>Upper Jaw</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="toolTip">
+         <string>Select whether the teeth are from the left or right side of the face.</string>
+        </property>
+        <property name="text">
+         <string>Side of Face: </string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QFrame" name="frame_4">
+        <layout class="QGridLayout" name="gridLayout_8">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>0</number>
+         </property>
+         <item row="0" column="1">
+          <widget class="QRadioButton" name="LeftradioButton">
+           <property name="text">
+            <string>Left Side</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QRadioButton" name="RightradioButton">
+           <property name="text">
+            <string>Right Side</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
    <item>
     <widget class="ctkCollapsibleButton" name="inputsCollapsibleButton">
      <property name="text">
@@ -23,7 +163,7 @@
          <string>Select a segmentation node that contains the teeth. Each tooth should get its own segment layer.</string>
         </property>
         <property name="text">
-         <string>Segmentation:</string>
+         <string>Tooth Segmentation:</string>
         </property>
        </widget>
       </item>
@@ -55,131 +195,40 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="label_6">
-        <property name="toolTip">
-         <string>Select fiducial located at the tip of the jaw.</string>
-        </property>
+       <widget class="QLabel" name="label_9">
         <property name="text">
-         <string>Tip of Jaw:</string>
+         <string>Set Reference Points:</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="qMRMLNodeComboBox" name="JawLengthPointSelector">
-        <property name="toolTip">
-         <string>Select fiducial located at the tip of the jaw.</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLMarkupsFiducialNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="baseName">
-         <string>Tip of the Jaw</string>
-        </property>
-        <property name="noneEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="editEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="toolTip">
-         <string>Select fiducial located at the jaw joint.</string>
-        </property>
+       <widget class="QPushButton" name="TemplatepushButton">
         <property name="text">
-         <string>Jaw Joint:</string>
+         <string>Create new reference point list</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="qMRMLNodeComboBox" name="JawJointPointSelector">
-        <property name="toolTip">
-         <string>Select fiducial located at the jaw joint.</string>
+       <widget class="qSlicerSimpleMarkupsWidget" name="SimpleMarkupsWidget">
+        <property name="enabled">
+         <bool>true</bool>
         </property>
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLMarkupsFiducialNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
+        <property name="enterPlaceModeOnNodeChange">
          <bool>false</bool>
         </property>
-        <property name="baseName">
-         <string>Jaw Joint</string>
+        <property name="nodeColor">
+         <color>
+          <red>225</red>
+          <green>128</green>
+          <blue>128</blue>
+         </color>
         </property>
-        <property name="noneEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="editEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="toolTip">
-         <string>Select fiducial located at the insertion point of the jaw closing muscle.</string>
-        </property>
-        <property name="text">
-         <string>In-Lever Insert:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="qMRMLNodeComboBox" name="InLeverPointSelector">
-        <property name="toolTip">
-         <string>Select fiducial located at the insertion point of the jaw closing muscle.</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist>
-          <string>vtkMRMLMarkupsFiducialNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="baseName">
-         <string>In-Lever Insertion Point</string>
-        </property>
-        <property name="noneEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="editEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="renameEnabled">
-         <bool>true</bool>
+        <property name="defaultNodeColor">
+         <color>
+          <red>225</red>
+          <green>128</green>
+          <blue>128</blue>
+         </color>
         </property>
        </widget>
       </item>
@@ -255,148 +304,23 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
-       <widget class="QCheckBox" name="PoscheckBox">
-        <property name="text">
-         <string>Swap out-lever and tooth position</string>
-        </property>
-        <property name="toolTip">
-         <string>Out-lever lines should connect the jaw joint to the tip of the tooth. If they connect the base of the tooth, check this box.</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="advancedCollapsibleButton">
+    <widget class="ctkCollapsibleButton" name="outputsCollapsibleButton">
      <property name="text">
       <string>Advanced</string>
      </property>
-     <property name="collapsed">
-      <bool>false</bool>
-     </property>
-     <layout class="QFormLayout" name="formLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="toolTip">
-         <string>Enter name of the species that the teeth belongs to.</string>
-        </property>
-        <property name="text">
-         <string>Species:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="SpecieslineEdit">
-        <property name="toolTip">
-         <string>Enter name of the species that the teeth belongs to.</string>
-        </property>
-        <property name="text">
-         <string>Enter species name</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="toolTip">
-         <string>Select whether the teeth are from the lower or upper jaw.</string>
-        </property>
-        <property name="text">
-         <string>Jaw ID:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QFrame" name="frame_4">
-        <layout class="QGridLayout" name="gridLayout_8">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <property name="verticalSpacing">
-          <number>0</number>
-         </property>
-         <item row="0" column="1">
-          <widget class="QRadioButton" name="LowerradioButton">
-           <property name="text">
-            <string>Lower Jaw</string>
-           </property>
-           <property name="autoExclusive">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QRadioButton" name="UpperradioButton">
-           <property name="text">
-            <string>Upper Jaw</string>
-           </property>
-           <property name="autoExclusive">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="toolTip">
-         <string>Select whether the teeth are from the left or right side of the face.</string>
-        </property>
-        <property name="text">
-         <string>Side of Face: </string>
-        </property>
-       </widget>
-      </item>
+     <layout class="QFormLayout" name="formLayout_4">
       <item row="2" column="1">
-       <widget class="QFrame" name="frame_4">
-        <layout class="QGridLayout" name="gridLayout_8">
-         <property name="leftMargin">
-          <number>0</number>
-         </property>
-         <property name="topMargin">
-          <number>0</number>
-         </property>
-         <property name="rightMargin">
-          <number>0</number>
-         </property>
-         <property name="bottomMargin">
-          <number>0</number>
-         </property>
-         <property name="verticalSpacing">
-          <number>0</number>
-         </property>
-         <item row="0" column="1">
-          <widget class="QRadioButton" name="LeftradioButton">
-           <property name="text">
-            <string>Left Side</string>
-           </property>
-           <property name="autoExclusive">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QRadioButton" name="RightradioButton">
-           <property name="text">
-            <string>Right Side</string>
-           </property>
-           <property name="autoExclusive">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
+       <widget class="QCheckBox" name="PoscheckBox">
+        <property name="toolTip">
+         <string>Out-lever lines should connect the jaw joint to the tip of the tooth. If they connect the base of the tooth, check this box.</string>
+        </property>
+        <property name="text">
+         <string>Swap out-lever and tooth position</string>
+        </property>
        </widget>
       </item>
      </layout>
@@ -417,11 +341,11 @@
    </item>
    <item>
     <widget class="QPushButton" name="ResetpushButton">
-     <property name="toolTip">
-      <string>Click to clear results and start over.</string>
-     </property>
      <property name="enabled">
       <bool>true</bool>
+     </property>
+     <property name="toolTip">
+      <string>Click to clear results and start over.</string>
      </property>
      <property name="text">
       <string>Clear Results</string>
@@ -444,6 +368,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>ctkCheckBox</class>
+   <extends>QCheckBox</extends>
+   <header>ctkCheckBox.h</header>
+  </customwidget>
   <customwidget>
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
@@ -471,73 +400,20 @@
    <header>qMRMLWidget.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>qSlicerWidget</class>
+   <extends>QWidget</extends>
+   <header>qSlicerWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>qSlicerSimpleMarkupsWidget</class>
+   <extends>qSlicerWidget</extends>
+   <header>qSlicerSimpleMarkupsWidget.h</header>
+  </customwidget>
  </customwidgets>
  <resources/>
  <connections>
-  <connection>
-   <sender>FunctionalHomodonty</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>segmentationSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>82</x>
-     <y>135</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>245</x>
-     <y>54</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>FunctionalHomodonty</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>JawLengthPointSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>161</x>
-     <y>8</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>250</x>
-     <y>72</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>FunctionalHomodonty</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>JawJointPointSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>161</x>
-     <y>8</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>250</x>
-     <y>72</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>FunctionalHomodonty</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>InLeverPointSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>161</x>
-     <y>8</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>250</x>
-     <y>72</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>FunctionalHomodonty</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
@@ -551,6 +427,38 @@
     <hint type="destinationlabel">
      <x>335</x>
      <y>226</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>FunctionalHomodonty</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>SimpleMarkupsWidget</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>143</x>
+     <y>277</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>335</x>
+     <y>226</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>FunctionalHomodonty</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>segmentationSelector</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>82</x>
+     <y>135</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>245</x>
+     <y>54</y>
     </hint>
    </hints>
   </connection>

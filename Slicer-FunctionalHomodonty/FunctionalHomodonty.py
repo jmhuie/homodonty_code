@@ -82,9 +82,7 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
     # (in the selected parameter node).
     self.ui.segmentationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
-    self.ui.JawLengthPointSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
-    self.ui.JawJointPointSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
-    self.ui.InLeverPointSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
+    #self.ui.SimpleMarkupsWidget.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
     self.ui.ForceInputSlider.connect("valueChanged(double)", self.updateParameterNodeFromGUI)
     self.ui.tableSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
     self.ui.SpecieslineEdit.connect('stateChanged(int)', self.updateParameterNodeFromGUI)
@@ -93,6 +91,7 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     self.ui.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.ui.ResetpushButton.connect('clicked(bool)', self.onResetButton)
     self.ui.PoscheckBox.connect('stateChanged(int)', self.onFlipCheckBox)
+    self.ui.TemplatepushButton.connect('clicked(bool)', self.onTemplate)
 
     # Make sure parameter node is initialized (needed for module reload)
     self.initializeParameterNode()
@@ -182,16 +181,14 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
 
     # Update node selectors and sliders
     self.ui.segmentationSelector.setCurrentNode(self._parameterNode.GetNodeReference("Segmentation"))
-    self.ui.JawLengthPointSelector.setCurrentNode(self._parameterNode.GetNodeReference("JawLength"))
-    self.ui.JawJointPointSelector.setCurrentNode(self._parameterNode.GetNodeReference("JawJoint"))
-    self.ui.InLeverPointSelector.setCurrentNode(self._parameterNode.GetNodeReference("InLever"))
+    #self.ui.SimpleMarkupsWidget.setCurrentNode(self._parameterNode.GetNodeReference("RefPoints"))
     
     wasBlocked = self.ui.tableSelector.blockSignals(True)
     self.ui.tableSelector.setCurrentNode(self._parameterNode.GetNodeReference("ResultsTable"))
     self.ui.tableSelector.blockSignals(wasBlocked)
 
     # Update buttons states and tooltips
-    if self._parameterNode.GetNodeReference("Segmentation") and self._parameterNode.GetNodeReference("JawLength") and self._parameterNode.GetNodeReference("JawJoint") and self._parameterNode.GetNodeReference("InLever"):
+    if self._parameterNode.GetNodeReference("Segmentation") :
       self.ui.applyButton.toolTip = "Compute functional homodonty"
       self.ui.applyButton.enabled = True
     else:
@@ -218,15 +215,28 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
 
     self._parameterNode.SetNodeReferenceID("Segmentation", self.ui.segmentationSelector.currentNodeID)
-    self._parameterNode.SetNodeReferenceID("JawLength", self.ui.JawLengthPointSelector.currentNodeID)
-    self._parameterNode.SetNodeReferenceID("JawJoint", self.ui.JawJointPointSelector.currentNodeID)
-    self._parameterNode.SetNodeReferenceID("InLever", self.ui.InLeverPointSelector.currentNodeID)
+    #self._parameterNode.SetNodeReferenceID("RefPoints", str(self.ui.SimpleMarkupsWidget.currentNode))
     self._parameterNode.SetParameter("Force", str(self.ui.ForceInputSlider.value))
     self._parameterNode.SetNodeReferenceID("ResultsTable", self.ui.tableSelector.currentNodeID)
     
 
     self._parameterNode.EndModify(wasModified)
-
+    
+  def onTemplate(self):
+    """
+    Run processing when user clicks "Reset" button.
+    """
+    pointListNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
+    pointListNode.AddControlPoint([0,0,0],"Jaw Joint")
+    pointListNode.AddControlPoint([0,0,0],"Tip of Jaw")
+    pointListNode.AddControlPoint([0,0,0],"Muscle Insert Site")
+    pointListNode.UnsetNthControlPointPosition(0)
+    pointListNode.UnsetNthControlPointPosition(1)
+    pointListNode.UnsetNthControlPointPosition(2)
+    slicer.modules.segmentgeometry.widgetRepresentation()
+    slicer.modules.FunctionalHomodontyWidget.ui.SimpleMarkupsWidget.setCurrentNode(pointListNode)
+    slicer.modules.FunctionalHomodontyWidget.ui.ActionFixedNumberOfControlPoints.trigger()
+    
   def onFlipCheckBox(self):
     """
     Run processing when user clicks "Reset" button.
@@ -241,6 +251,14 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
         shItemId = childIds.GetId(itemIdIndex)
         dataNode = shNode.GetItemDataNode(shItemId)
         slicer.mrmlScene.RemoveNode(dataNode)
+    shNode.RemoveItem(shFolderItemId)
+    
+
+    if childIds.GetNumberOfIds() > 0:
+      for itemIdIndex in range(childIds.GetNumberOfIds()):
+        shItemId = childIds.GetId(itemIdIndex)
+        dataNode = shNode.GetItemDataNode(shItemId)
+        slicer.mrmlScene.RemoveNode(dataNode)    
     
   def onResetButton(self):
     """
@@ -250,18 +268,6 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     shFolderItemId = shNode.GetItemByName("Functional Homodonty Misc")
     childIds = vtk.vtkIdList()
     shNode.GetItemChildren(shFolderItemId, childIds)
-    self.ui.UpperradioButton.autoExclusive = False
-    self.ui.LowerradioButton.autoExclusive = False
-    self.ui.LeftradioButton.autoExclusive = False
-    self.ui.RightradioButton.autoExclusive = False
-    self.ui.UpperradioButton.checked = False
-    self.ui.LowerradioButton.checked = False
-    self.ui.LeftradioButton.checked = False
-    self.ui.RightradioButton.checked = False
-    self.ui.UpperradioButton.autoExclusive = True
-    self.ui.LowerradioButton.autoExclusive = True
-    self.ui.LeftradioButton.autoExclusive = True
-    self.ui.RightradioButton.autoExclusive = True
     self.ui.PoscheckBox.checked = False
 
     if childIds.GetNumberOfIds() > 0:
@@ -294,8 +300,8 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
         self.ui.tableSelector.setCurrentNode(tableNode)
 
       # Compute output
-      self.logic.run(self.ui.segmentationSelector.currentNode(), self.ui.JawLengthPointSelector.currentNode(), self.ui.JawJointPointSelector.currentNode(), 
-      self.ui.InLeverPointSelector.currentNode(), self.ui.ForceInputSlider.value, tableNode, self.ui.SpecieslineEdit.text, self.ui.LowerradioButton.checked, self.ui.UpperradioButton.checked,
+      self.logic.run(self.ui.segmentationSelector.currentNode(), self.ui.SimpleMarkupsWidget.currentNode(), 
+      self.ui.ForceInputSlider.value, tableNode, self.ui.SpecieslineEdit.text, self.ui.LowerradioButton.checked, self.ui.UpperradioButton.checked,
       self.ui.LeftradioButton.checked, self.ui.RightradioButton.checked, self.ui.PoscheckBox.checked)
       
       self.ui.ResetpushButton.enabled = True  
@@ -332,7 +338,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      parameterNode.SetParameter("Force", "1.0")
 
 
-  def run(self, segmentationNode, lengthNode, jointNode, inleverNode, force, tableNode, species, LowerradioButton, UpperradioButton, LeftradioButton, RightradioButton, PoscheckBox):
+  def run(self, segmentationNode, pointNode, force, tableNode, species, LowerradioButton, UpperradioButton, LeftradioButton, RightradioButton, PoscheckBox):
     """
     Run the processing algorithm.
     Can be used without GUI widget.
@@ -399,11 +405,20 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     # create misc folder
     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
     newFolder = shNode.GetItemByName("Functional Homodonty Misc")
+    outFolder = shNode.GetItemByName("Out Levers")
+    posFolder = shNode.GetItemByName("Tooth Positions")
     if newFolder == 0:
       newFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Functional Homodonty Misc")      
+      outFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Out Levers")      
+      posFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Tooth Positions") 
+      shNode.SetItemParent(outFolder, newFolder)
+      shNode.SetItemParent(posFolder, newFolder)
     shNode.SetItemExpanded(newFolder,0)   
+    shNode.SetItemExpanded(outFolder,0) 
+    shNode.SetItemExpanded(posFolder,0) 
     # create models of the teeth
     slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, newFolder) 
+    
 
     # calculate the centroid and surface area of each segment
     import SegmentStatistics
@@ -421,10 +436,10 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     stats = segStatLogic.getStatistics()
 
     jointRAS = [0,]*3
-    jointNode.GetNthFiducialPosition(0,jointRAS)
+    pointNode.GetNthFiducialPosition(0,jointRAS)
 	# draw line representing jaw length
     jawtipRAS = [0,]*3
-    lengthNode.GetNthFiducialPosition(0,jawtipRAS)
+    pointNode.GetNthFiducialPosition(1,jawtipRAS)
     lengthLine = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode", "JawLength")
     if lengthLine == None:
       lengthLine = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", "JawLength")
@@ -440,7 +455,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
 	
 	# draw line representing in-lever
     inleverRAS = [0,]*3
-    inleverNode.GetNthFiducialPosition(0,inleverRAS)
+    pointNode.GetNthFiducialPosition(2,inleverRAS)
     leverLine = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode", "InLever")
     if leverLine == None:
       leverLine = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", "InLever")
@@ -534,14 +549,17 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      # draw line between jaw joint and tooth
      toothRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
      toothRAS = closestPointOnSurface_World # draw to the tip of the tooth
-     ToothlineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", "temp_ToothPosLine")
-     ToothlineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
-     ToothlineNode.AddControlPoint(jointRAS)
-     ToothlineNode.AddControlPoint(toothRAS)
-     shNode.SetItemParent(shNode.GetItemByDataNode(ToothlineNode), newFolder)
+     ToothlineNode = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode",segment.GetName() + "_Pos")
+     if ToothlineNode == None:
+       ToothlineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName() + "_Pos")
+       ToothlineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
+       ToothlineNode.GetDisplayNode().SetVisibility(0)
+       ToothlineNode.AddControlPoint(jointRAS)
+       ToothlineNode.AddControlPoint(toothRAS)
+       shNode.SetItemParent(shNode.GetItemByDataNode(ToothlineNode), posFolder)
      ToothPos = ToothlineNode.GetMeasurement('length').GetValue()
      PositionArray.InsertNextValue(ToothPos)
-     slicer.mrmlScene.RemoveNode(ToothlineNode)
+
 
      
      # try to find the tip of the tooth
@@ -597,7 +615,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
        lineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
        lineNode.AddControlPoint(jointRAS)
        lineNode.AddControlPoint(toothRAS)
-       shNode.SetItemParent(shNode.GetItemByDataNode(lineNode), newFolder)
+       shNode.SetItemParent(shNode.GetItemByDataNode(lineNode), outFolder)
      else: 
        lineNode.SetNthControlPointPosition(0,jointRAS)     
      OutLever = lineNode.GetMeasurement('length').GetValue()
@@ -613,6 +631,12 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      
      # calculate tooth stress
      StressArray.InsertNextValue((force * MA)/ (Area * 1e-6))
+    
+    shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+    shFolderItemId = shNode.GetItemByName("Tooth Positions")
+    shNode.SetItemDisplayVisibility(shFolderItemId,1)
+    shNode.SetItemDisplayVisibility(shFolderItemId,0)
+
     
     if species != "Enter species name" and species != "":
       tableNode.AddColumn(SpeciesArray)
