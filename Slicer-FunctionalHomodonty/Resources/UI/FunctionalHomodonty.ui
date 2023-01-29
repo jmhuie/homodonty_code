@@ -2,19 +2,22 @@
 <ui version="4.0">
  <class>FunctionalHomodonty</class>
  <widget class="qMRMLWidget" name="FunctionalHomodonty">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>540</height>
+    <height>807</height>
    </rect>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout">
    <item>
-    <widget class="ctkCollapsibleButton" name="advancedCollapsibleButton">
+    <widget class="ctkCollapsibleButton" name="specimenCollapsibleButton">
      <property name="text">
-      <string>Metadata</string>
+      <string>Specimen Data</string>
      </property>
      <property name="collapsed">
       <bool>false</bool>
@@ -308,23 +311,145 @@
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="outputsCollapsibleButton">
+    <widget class="ctkCollapsibleButton" name="advancedCollapsibleButton">
      <property name="text">
       <string>Advanced</string>
      </property>
+     <property name="collapsed">
+      <bool>false</bool>
+     </property>
      <layout class="QFormLayout" name="formLayout_4">
-      <item row="2" column="1">
-       <widget class="QCheckBox" name="PoscheckBox">
-        <property name="toolTip">
-         <string>Out-lever lines should connect the jaw joint to the tip of the tooth. If they connect the base of the tooth, check this box.</string>
+      <item row="5" column="0" colspan="2">
+       <widget class="ctkCollapsibleGroupBox" name="groupBox_2">
+        <property name="title">
+         <string>Toggle visibility of out-lever and tooth position lines:</string>
         </property>
-        <property name="text">
-         <string>Swap out-lever and tooth position</string>
+        <property name="collapsed">
+         <bool>false</bool>
         </property>
+        <layout class="QFormLayout" name="formLayout_4">
+         <item row="0" column="1">
+          <widget class="QPushButton" name="OutVisButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Show/Hide Out-lever Lines</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="PosVisButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Show/Hide Tooth Positon Lines</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="4" column="0" colspan="2">
+       <widget class="ctkCollapsibleGroupBox" name="groupBox_2">
+        <property name="title">
+         <string>Switch out-lever and tooth position lines:</string>
+        </property>
+        <property name="collapsed">
+         <bool>false</bool>
+        </property>
+        <layout class="QFormLayout" name="formLayout_4">
+         <item row="1" column="0" colspan="2">
+          <widget class="QFrame" name="frame_3">
+           <layout class="QGridLayout" name="gridLayout_7">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>2</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <property name="verticalSpacing">
+             <number>0</number>
+            </property>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="FlipSomeButton">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>Switch Selected Lines</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="qMRMLSegmentSelectorWidget" name="SegmentSelectorWidget">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="noneEnabled">
+               <bool>true</bool>
+              </property>
+              <property name="editEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="segmentationNodeSelectorVisible">
+               <bool>false</bool>
+              </property>
+              <property name="multiSelection">
+               <bool>true</bool>
+              </property>
+              <property name="horizontalLayout">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="2">
+          <widget class="QPushButton" name="FlipButton">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>Switch All Lines</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>
     </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Minimum</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <widget class="QPushButton" name="applyButton">
@@ -357,10 +482,13 @@
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Expanding</enum>
+     </property>
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>40</height>
+       <height>200</height>
       </size>
      </property>
     </spacer>
@@ -369,14 +497,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ctkCheckBox</class>
-   <extends>QCheckBox</extends>
-   <header>ctkCheckBox.h</header>
-  </customwidget>
-  <customwidget>
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>ctkCollapsibleGroupBox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -410,6 +539,11 @@
    <class>qSlicerSimpleMarkupsWidget</class>
    <extends>qSlicerWidget</extends>
    <header>qSlicerSimpleMarkupsWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLSegmentSelectorWidget</class>
+   <extends>qMRMLWidget</extends>
+   <header>qMRMLSegmentSelectorWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
@@ -459,6 +593,22 @@
     <hint type="destinationlabel">
      <x>245</x>
      <y>54</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>FunctionalHomodonty</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>SegmentSelectorWidget</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>249</x>
+     <y>309</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>249</x>
+     <y>474</y>
     </hint>
    </hints>
   </connection>
