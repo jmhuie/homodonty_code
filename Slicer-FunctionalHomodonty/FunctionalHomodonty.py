@@ -72,7 +72,7 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     # Create logic class. Logic implements all computations that should be possible to run
     # in batch mode, without a graphical user interface.
     self.logic = FunctionalHomodontyLogic()
-
+        
     # Connections
 
     # These connections ensure that we update parameter node when scene is closed
@@ -82,16 +82,27 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     # These connections ensure that whenever user changes some settings on the GUI, that is saved in the MRML scene
     # (in the selected parameter node).
     self.ui.segmentationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
-    #self.ui.SimpleMarkupsWidget.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
+    self.ui.SimpleMarkupsWidget.connect("markupsNodeChanged()", self.updateParameterNodeFromGUI)
+    self.ui.SimpleMarkupsWidget.connect("markupsNodeChanged()", self.updateGUIFromParameterNode)
     self.ui.ForceInputSlider.connect("valueChanged(double)", self.updateParameterNodeFromGUI)
     self.ui.tableSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
     self.ui.SpecieslineEdit.connect('stateChanged(int)', self.updateParameterNodeFromGUI)
+    self.ui.SegmentSelectorWidget.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
+    
 
     # Buttons
     self.ui.applyButton.connect('clicked(bool)', self.onApplyButton)
     self.ui.ResetpushButton.connect('clicked(bool)', self.onResetButton)
-    self.ui.PoscheckBox.connect('stateChanged(int)', self.onFlipCheckBox)
     self.ui.TemplatepushButton.connect('clicked(bool)', self.onTemplate)
+    self.ui.FlipButton.connect('clicked(bool)', self.onFlipResults)
+    self.ui.FlipButton.connect('clicked(bool)', self.onApplyButton)
+    self.ui.FlipSomeButton.connect('clicked(bool)', self.onFlipSomeResults)
+    self.ui.FlipSomeButton.connect('clicked(bool)', self.onApplyButton)
+    self.ui.PosVisButton.connect('clicked(bool)', self.onPositionVis)
+    self.ui.OutVisButton.connect('clicked(bool)', self.onOutleverVis)
+    self.ui.segmentationSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onResetButton)
+
+
 
     # Make sure parameter node is initialized (needed for module reload)
     self.initializeParameterNode()
@@ -180,7 +191,14 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     self._updatingGUIFromParameterNode = True
 
     # Update node selectors and sliders
+    wasBlocked = self.ui.segmentationSelector.blockSignals(True)
     self.ui.segmentationSelector.setCurrentNode(self._parameterNode.GetNodeReference("Segmentation"))
+    self.ui.segmentationSelector.blockSignals(wasBlocked)
+
+    wasBlocked = self.ui.SegmentSelectorWidget.blockSignals(True)
+    self.ui.SegmentSelectorWidget.setCurrentNode(self._parameterNode.GetNodeReference("Segmentation"))
+    self.ui.SegmentSelectorWidget.blockSignals(wasBlocked)
+
     #self.ui.SimpleMarkupsWidget.setCurrentNode(self._parameterNode.GetNodeReference("RefPoints"))
     
     wasBlocked = self.ui.tableSelector.blockSignals(True)
@@ -188,7 +206,7 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     self.ui.tableSelector.blockSignals(wasBlocked)
 
     # Update buttons states and tooltips
-    if self._parameterNode.GetNodeReference("Segmentation") :
+    if self._parameterNode.GetNodeReference("Segmentation") and self.ui.SimpleMarkupsWidget.currentNode() is not None:
       self.ui.applyButton.toolTip = "Compute functional homodonty"
       self.ui.applyButton.enabled = True
     else:
@@ -213,9 +231,8 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
       return
 
     wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
-
     self._parameterNode.SetNodeReferenceID("Segmentation", self.ui.segmentationSelector.currentNodeID)
-    #self._parameterNode.SetNodeReferenceID("RefPoints", str(self.ui.SimpleMarkupsWidget.currentNode))
+    #self._parameterNode.SetNodeReferenceID("RefPoints", self.ui.SimpleMarkupsWidget.currentNode)
     self._parameterNode.SetParameter("Force", str(self.ui.ForceInputSlider.value))
     self._parameterNode.SetNodeReferenceID("ResultsTable", self.ui.tableSelector.currentNodeID)
     
@@ -229,57 +246,148 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     pointListNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
     pointListNode.AddControlPoint([0,0,0],"Jaw Joint")
     pointListNode.AddControlPoint([0,0,0],"Tip of Jaw")
-    pointListNode.AddControlPoint([0,0,0],"Muscle Insert Site")
+    pointListNode.AddControlPoint([0,0,0],"Muscle Insertion Site")
     pointListNode.UnsetNthControlPointPosition(0)
     pointListNode.UnsetNthControlPointPosition(1)
     pointListNode.UnsetNthControlPointPosition(2)
+    pointListNode.GetDisplayNode().SetPropertiesLabelVisibility(True)
+    pointListNode.GetDisplayNode().SetTextScale(3)
     slicer.modules.segmentgeometry.widgetRepresentation()
     slicer.modules.FunctionalHomodontyWidget.ui.SimpleMarkupsWidget.setCurrentNode(pointListNode)
     slicer.modules.FunctionalHomodontyWidget.ui.ActionFixedNumberOfControlPoints.trigger()
     
-  def onFlipCheckBox(self):
+  def onFlipResults(self):
     """
-    Run processing when user clicks "Reset" button.
+    Run processing when user clicks "Flip" button.
     """
     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
-    shFolderItemId = shNode.GetItemByName("Functional Homodonty Misc")
-    childIds = vtk.vtkIdList()
-    shNode.GetItemChildren(shFolderItemId, childIds)
-
-    if childIds.GetNumberOfIds() > 0:
-      for itemIdIndex in range(childIds.GetNumberOfIds()):
-        shItemId = childIds.GetId(itemIdIndex)
-        dataNode = shNode.GetItemDataNode(shItemId)
-        slicer.mrmlScene.RemoveNode(dataNode)
-    shNode.RemoveItem(shFolderItemId)
+    pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+    folderPlugin = pluginHandler.pluginByName("Folder")
+    outvis = folderPlugin.getDisplayVisibility(shNode.GetItemByName("Out Levers"))
+    posvis = folderPlugin.getDisplayVisibility(shNode.GetItemByName("Tooth Positions"))
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Out Levers"), 0)
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Tooth Positions"), 0)
     
-
-    if childIds.GetNumberOfIds() > 0:
-      for itemIdIndex in range(childIds.GetNumberOfIds()):
-        shItemId = childIds.GetId(itemIdIndex)
-        dataNode = shNode.GetItemDataNode(shItemId)
-        slicer.mrmlScene.RemoveNode(dataNode)    
     
+    OutItemID = shNode.GetItemByName("Out Levers")
+    Outchildren = vtk.vtkIdList()
+    shNode.GetItemChildren(OutItemID, Outchildren)
+    PosItemID = shNode.GetItemByName("Tooth Positions")
+    Poschildren = vtk.vtkIdList()
+    shNode.GetItemChildren(PosItemID, Poschildren)
+
+    for i in range(Outchildren.GetNumberOfIds()):
+      child = Outchildren.GetId(i)
+      shNode.SetItemParent(child, PosItemID)
+      childNode = shNode.GetItemDataNode(child)
+      childNode.GetDisplayNode().SetSelectedColor((0, 0.72, 0.92))
+      childNode.GetDisplayNode().SetActiveColor((1, 0.65, 0.0))
+
+
+    for i in range(Poschildren.GetNumberOfIds()):
+      child = Poschildren.GetId(i)
+      shNode.SetItemParent(child, OutItemID)
+      childNode = shNode.GetItemDataNode(child)
+      childNode.GetDisplayNode().SetSelectedColor((1.0, 0.5000076295109483, 0.5000076295109483))
+      childNode.GetDisplayNode().SetActiveColor((0.4, 1.0, 0.0))
+      
+    pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+    folderPlugin = pluginHandler.pluginByName("Folder")
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Out Levers"), outvis)
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Tooth Positions"), posvis)
+
+  def onFlipSomeResults(self):
+    """
+    Run processing when user clicks "Flip" button.
+    """
+    shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+    pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+    folderPlugin = pluginHandler.pluginByName("Folder")
+    outvis = folderPlugin.getDisplayVisibility(shNode.GetItemByName("Out Levers"))
+    posvis = folderPlugin.getDisplayVisibility(shNode.GetItemByName("Tooth Positions"))
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Out Levers"), 0)
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Tooth Positions"), 0)
+    
+    segments = self.ui.SegmentSelectorWidget.selectedSegmentIDs()
+    print(segments)
+    OutItemID = shNode.GetItemByName("Out Levers")
+    PosItemID = shNode.GetItemByName("Tooth Positions")
+    Outchildren = []
+    Poschildren = []
+
+    for i in segments:
+      Outchildren.append(shNode.GetItemChildWithName(OutItemID, i))
+      Poschildren.append(shNode.GetItemChildWithName(PosItemID, i))
+
+    for i in Outchildren:
+      child = i
+      shNode.SetItemParent(child, PosItemID)
+      childNode = shNode.GetItemDataNode(child)
+      childNode.GetDisplayNode().SetSelectedColor((0, 0.72, 0.92))
+      childNode.GetDisplayNode().SetActiveColor((1, 0.65, 0.0))
+
+    for i in Poschildren:
+      child = i
+      shNode.SetItemParent(child, OutItemID)
+      childNode = shNode.GetItemDataNode(child)
+      childNode.GetDisplayNode().SetSelectedColor((1.0, 0.5000076295109483, 0.5000076295109483))
+      childNode.GetDisplayNode().SetActiveColor((0.4, 1.0, 0.0))
+      
+    pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+    folderPlugin = pluginHandler.pluginByName("Folder")
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Out Levers"), outvis)
+    folderPlugin.setDisplayVisibility(shNode.GetItemByName("Tooth Positions"), posvis)
+
+  def onOutleverVis(self):
+    """
+    Run processing when user clicks "Outlever Vis" button.
+    """    
+    shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+    folderItemID = shNode.GetItemByName("Out Levers")
+    pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+    folderPlugin = pluginHandler.pluginByName("Folder")
+
+    if shNode.GetItemDisplayVisibility(folderItemID) == 0:
+      folderPlugin.setDisplayVisibility(folderItemID, 1)
+    
+    else:
+      folderPlugin.setDisplayVisibility(folderItemID, 0)
+      
+  def onPositionVis(self):
+    """
+    Run processing when user clicks "Outlever Vis" button.
+    """
+    shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+    folderItemID = shNode.GetItemByName("Tooth Positions")
+    pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+    folderPlugin = pluginHandler.pluginByName("Folder")
+
+    if shNode.GetItemDisplayVisibility(folderItemID) == 0:
+      folderPlugin.setDisplayVisibility(folderItemID, 1)
+    
+    else:
+      folderPlugin.setDisplayVisibility(folderItemID, 0)
+
   def onResetButton(self):
     """
     Run processing when user clicks "Reset" button.
     """
     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
     shFolderItemId = shNode.GetItemByName("Functional Homodonty Misc")
-    childIds = vtk.vtkIdList()
-    shNode.GetItemChildren(shFolderItemId, childIds)
-    self.ui.PoscheckBox.checked = False
-
-    if childIds.GetNumberOfIds() > 0:
-      for itemIdIndex in range(childIds.GetNumberOfIds()):
-        shItemId = childIds.GetId(itemIdIndex)
-        dataNode = shNode.GetItemDataNode(shItemId)
-        slicer.mrmlScene.RemoveNode(dataNode)
     shNode.RemoveItem(shFolderItemId)
     slicer.mrmlScene.RemoveNode(self.ui.tableSelector.currentNode())
+    layoutManager = slicer.app.layoutManager()
+
+    tableWidget = layoutManager.tableWidget(0)
     
-    
+    self.ui.OutVisButton.enabled = False
+    self.ui.PosVisButton.enabled = False
+    self.ui.FlipButton.enabled = False
+    self.ui.FlipSomeButton.enabled = False
+    self.ui.FlipSomeButton.enabled = False
+    self.ui.SegmentSelectorWidget.enabled = False
     #self.ui.ResetpushButton.enabled = False
+    
 
   def onApplyButton(self):
     """
@@ -302,9 +410,20 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
       # Compute output
       self.logic.run(self.ui.segmentationSelector.currentNode(), self.ui.SimpleMarkupsWidget.currentNode(), 
       self.ui.ForceInputSlider.value, tableNode, self.ui.SpecieslineEdit.text, self.ui.LowerradioButton.checked, self.ui.UpperradioButton.checked,
-      self.ui.LeftradioButton.checked, self.ui.RightradioButton.checked, self.ui.PoscheckBox.checked)
+      self.ui.LeftradioButton.checked, self.ui.RightradioButton.checked)
       
+
+      self.ui.OutVisButton.enabled = True
+      self.ui.PosVisButton.enabled = True
+      self.ui.FlipButton.enabled = True
+      self.ui.FlipSomeButton.enabled = True
+      self.ui.SegmentSelectorWidget.enabled = True
       self.ui.ResetpushButton.enabled = True  
+      
+      
+      if len(self.ui.SegmentSelectorWidget.selectedSegmentIDs()) != 0:
+        self.ui.SegmentSelectorWidget.multiSelection = False
+        self.ui.SegmentSelectorWidget.multiSelection = True
  
     except Exception as e:
       slicer.util.errorDisplay("Failed to compute results: "+str(e))
@@ -338,7 +457,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      parameterNode.SetParameter("Force", "1.0")
 
 
-  def run(self, segmentationNode, pointNode, force, tableNode, species, LowerradioButton, UpperradioButton, LeftradioButton, RightradioButton, PoscheckBox):
+  def run(self, segmentationNode, pointNode, force, tableNode, species, LowerradioButton, UpperradioButton, LeftradioButton, RightradioButton):
     """
     Run the processing algorithm.
     Can be used without GUI widget.
@@ -389,7 +508,16 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
    
     PositionArray = vtk.vtkFloatArray()
     PositionArray.SetName("Position (mm)")
-   
+    
+    ToothHeightArray = vtk.vtkFloatArray()
+    ToothHeightArray.SetName("Tooth Height (mm)")
+    
+    ToothWidthArray = vtk.vtkFloatArray()
+    ToothWidthArray.SetName("Tooth Width (mm)")
+    
+    AspectRatioArray = vtk.vtkFloatArray()
+    AspectRatioArray.SetName("Aspect Ratio")    
+
     SurfaceAreaArray = vtk.vtkFloatArray()
     SurfaceAreaArray.SetName("Surface Area (mm^2)")
     
@@ -410,15 +538,21 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     if newFolder == 0:
       newFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Functional Homodonty Misc")      
       outFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Out Levers")      
-      posFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Tooth Positions") 
+      posFolder = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Tooth Positions")
+      pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+      folderPlugin = pluginHandler.pluginByName("Folder")
+      folderPlugin.setDisplayVisibility(posFolder, 0)
       shNode.SetItemParent(outFolder, newFolder)
       shNode.SetItemParent(posFolder, newFolder)
     shNode.SetItemExpanded(newFolder,0)   
     shNode.SetItemExpanded(outFolder,0) 
     shNode.SetItemExpanded(posFolder,0) 
     # create models of the teeth
-    slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, newFolder) 
-    
+    exportFolderItemId = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Tooth Segments")
+    slicer.modules.segmentations.logic().ExportAllSegmentsToModels(segmentationNode, exportFolderItemId) 
+    #boxFolderItemId = shNode.CreateFolderItem(shNode.GetSceneItemID(), "Tooth Boxes")
+    #shNode.SetItemParent(boxFolderItemId, newFolder)
+    #shNode.SetItemExpanded(boxFolderItemId,0)
 
     # calculate the centroid and surface area of each segment
     import SegmentStatistics
@@ -490,7 +624,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
        side = "Right"
      if side != "":
        SideArray.InsertNextValue(side)
-        
+     
      segment = segmentationNode.GetSegmentation().GetSegment(segmentId)
      SegmentNameArray.InsertNextValue(segment.GetName())
      
@@ -508,26 +642,26 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      obb_direction_ras_x = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_x"])
      obb_direction_ras_y = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_y"])
      obb_direction_ras_z = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_z"])
-     if PoscheckBox == True:
-       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
-       if (obb_direction_ras_z[2] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
+     if LowerradioButton == True:
+       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] > 0 and obb_direction_ras_z[1] > 0 and obb_direction_ras_z[2] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
        if (obb_direction_ras_z[1] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] < 0 and obb_direction_ras_z[1] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
        if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
-       if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-5 * obb_direction_ras_z)
-     else:
-       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
-       if (obb_direction_ras_z[2] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
+     if UpperradioButton == True:
+       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] > 0 and obb_direction_ras_z[1] > 0 and obb_direction_ras_z[2] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
        if (obb_direction_ras_z[1] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] < 0 and obb_direction_ras_z[1] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
        if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
-       if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
      modelNode = slicer.util.getFirstNodeByClassByName("vtkMRMLModelNode", segment.GetName())
 
      if modelNode.GetParentTransformNode():
@@ -547,47 +681,53 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      #slicer.mrmlScene.RemoveNode(modelNode)
      
      # draw line between jaw joint and tooth
-     toothRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
-     toothRAS = closestPointOnSurface_World # draw to the tip of the tooth
-     ToothlineNode = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode",segment.GetName() + "_Pos")
+     toothposRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
+     toothposRAS = closestPointOnSurface_World # draw to the tip of the tooth
+     ToothlineNode = shNode.GetItemDataNode(shNode.GetItemChildWithName(posFolder, segment.GetName()))
      if ToothlineNode == None:
-       ToothlineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName() + "_Pos")
+       ToothlineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
        ToothlineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
-       ToothlineNode.GetDisplayNode().SetVisibility(0)
+       ToothlineNode.GetDisplayNode().SetSelectedColor((0, 0.72, 0.92))
+       ToothlineNode.GetDisplayNode().SetActiveColor((1, 0.65, 0.0))
        ToothlineNode.AddControlPoint(jointRAS)
-       ToothlineNode.AddControlPoint(toothRAS)
+       ToothlineNode.AddControlPoint(toothposRAS)
        shNode.SetItemParent(shNode.GetItemByDataNode(ToothlineNode), posFolder)
      ToothPos = ToothlineNode.GetMeasurement('length').GetValue()
      PositionArray.InsertNextValue(ToothPos)
-
-
+     # auto hide the positions folder
+     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+     pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+     folderPlugin = pluginHandler.pluginByName("Folder")
+     if folderPlugin.getDisplayVisibility(posFolder) == 0:
+       folderPlugin.setDisplayVisibility(posFolder, 1)
+       folderPlugin.setDisplayVisibility(posFolder, 0)
      
      # try to find the tip of the tooth
-     obb_origin_ras = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_origin_ras"])
-     obb_diameter_mm = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_diameter_mm"])
-     obb_direction_ras_x = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_x"])
-     obb_direction_ras_y = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_y"])
-     obb_direction_ras_z = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_z"])
-     if PoscheckBox == True:
-       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
-       if (obb_direction_ras_z[2] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
+     #obb_origin_ras = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_origin_ras"])
+     #obb_diameter_mm = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_diameter_mm"])
+     #obb_direction_ras_x = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_x"])
+     #obb_direction_ras_y = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_y"])
+     #obb_direction_ras_z = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_direction_ras_z"])
+     if LowerradioButton == True:
+       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] > 0 and obb_direction_ras_z[1] > 0 and obb_direction_ras_z[2] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
        if (obb_direction_ras_z[1] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] < 0 and obb_direction_ras_z[1] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
        if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
-       if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
-     else:
-       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
-       if (obb_direction_ras_z[2] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
+     if UpperradioButton == True:
+       obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] > 0 and obb_direction_ras_z[1] > 0 and obb_direction_ras_z[2] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
        if (obb_direction_ras_z[1] < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
+       if (obb_direction_ras_z[0] < 0 and obb_direction_ras_z[1] < 0):
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2.2 * obb_direction_ras_z)
        if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*-2 * obb_direction_ras_z)
-       if all(obb_direction_ras_z < 0):
-         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*5 * obb_direction_ras_z)
+         obb_center_ras = obb_origin_ras+0.5*(obb_diameter_mm[0] * obb_direction_ras_x + obb_diameter_mm[1] * obb_direction_ras_y + obb_diameter_mm[2]*2.2 * obb_direction_ras_z)
      modelNode = slicer.util.getFirstNodeByClassByName("vtkMRMLModelNode", segment.GetName())
 
      if modelNode.GetParentTransformNode():
@@ -607,21 +747,44 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      slicer.mrmlScene.RemoveNode(modelNode)
      
      # draw line between jaw joint and tooth
-     toothRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
-     toothRAS = closestPointOnSurface_World # draw to the tip of the tooth
-     lineNode = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode",segment.GetName())
+     toothoutRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
+     toothoutRAS = closestPointOnSurface_World # draw to the tip of the tooth
+     lineNode = shNode.GetItemDataNode(shNode.GetItemChildWithName(outFolder, segment.GetName()))
      if lineNode == None:
        lineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
        lineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
        lineNode.AddControlPoint(jointRAS)
-       lineNode.AddControlPoint(toothRAS)
+       lineNode.AddControlPoint(toothoutRAS)
        shNode.SetItemParent(shNode.GetItemByDataNode(lineNode), outFolder)
      else: 
        lineNode.SetNthControlPointPosition(0,jointRAS)     
      OutLever = lineNode.GetMeasurement('length').GetValue()
-
+     # auto show the outlever folder
+     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+     pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+     folderPlugin = pluginHandler.pluginByName("Folder")
+     if folderPlugin.getDisplayVisibility(outFolder) == 0:
+       folderPlugin.setDisplayVisibility(outFolder, 1)
+       folderPlugin.setDisplayVisibility(outFolder, 0)
      
      RelPosArray.InsertNextValue(ToothPos/JawLength)
+     
+     # calculate tooth aspect ratio
+     heightNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
+     heightNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
+     heightNode.AddControlPoint(ToothlineNode.GetNthControlPointPosition(1))
+     heightNode.AddControlPoint(lineNode.GetNthControlPointPosition(1))
+     ToothHeight = heightNode.GetMeasurement('length').GetValue()
+     slicer.mrmlScene.RemoveNode(heightNode)
+     #ToothHeight = obb_diameter_mm[2]
+     ToothHeightArray.InsertNextValue(ToothHeight)
+     if obb_diameter_mm[0] > obb_diameter_mm[1]:
+       ToothWidthArray.InsertNextValue(obb_diameter_mm[0])
+       AspectRatioArray.InsertNextValue(ToothHeight/obb_diameter_mm[0])
+     if obb_diameter_mm[0] < obb_diameter_mm[1]:
+       ToothWidthArray.InsertNextValue(obb_diameter_mm[1])
+       AspectRatioArray.InsertNextValue(ToothHeight/obb_diameter_mm[1])
+
      
      # calculate mechanical advantage and F-Tooth
      InLever = leverLine.GetMeasurement('length').GetValue()
@@ -631,11 +794,6 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      
      # calculate tooth stress
      StressArray.InsertNextValue((force * MA)/ (Area * 1e-6))
-    
-    shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
-    shFolderItemId = shNode.GetItemByName("Tooth Positions")
-    shNode.SetItemDisplayVisibility(shFolderItemId,1)
-    shNode.SetItemDisplayVisibility(shFolderItemId,0)
 
     
     if species != "Enter species name" and species != "":
@@ -663,6 +821,18 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     #tableNode.SetColumnDescription(RelPosArray.GetName(), "Relative position of the tooth")
     #tableNode.SetColumnUnitLabel(RelPosArray.GetName(), "%")  # TODO: use length unit
 
+    tableNode.AddColumn(ToothHeightArray)
+    tableNode.SetColumnDescription(ToothHeightArray.GetName(), "Tooth Height")
+    tableNode.SetColumnUnitLabel(ToothHeightArray.GetName(), "mm")  # TODO: use length unit
+
+    tableNode.AddColumn(ToothWidthArray)
+    tableNode.SetColumnDescription(ToothWidthArray.GetName(), "Tooth Width")
+    tableNode.SetColumnUnitLabel(ToothWidthArray.GetName(), "mm")  # TODO: use length unit
+
+    tableNode.AddColumn(AspectRatioArray)
+    tableNode.SetColumnDescription(AspectRatioArray.GetName(), "Tooth Aspect Ratio")
+    tableNode.SetColumnUnitLabel(AspectRatioArray.GetName(), "mm")  # TODO: use length unit
+
     tableNode.AddColumn(SurfaceAreaArray)
     tableNode.SetColumnDescription(SurfaceAreaArray.GetName(), "Tooth surface area")
     tableNode.SetColumnUnitLabel(SurfaceAreaArray.GetName(), "mm^2")  # TODO: use length unit
@@ -677,6 +847,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     tableNode.AddColumn(StressArray)
     tableNode.SetColumnDescription(StressArray.GetName(), "Tooth stress (tooth force / surface area)")
 
+    shNode.RemoveItem(exportFolderItemId)
 
     customLayout = """
       <layout type=\"vertical\" split=\"true\" >
