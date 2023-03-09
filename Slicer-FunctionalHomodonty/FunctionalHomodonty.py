@@ -308,16 +308,17 @@ class FunctionalHomodontyWidget(ScriptedLoadableModuleWidget, VTKObservationMixi
     folderPlugin.setDisplayVisibility(shNode.GetItemByName("Out Levers"), 0)
     folderPlugin.setDisplayVisibility(shNode.GetItemByName("Tooth Positions"), 0)
     
+    segmentation = self.ui.SegmentSelectorWidget.currentNode()
     segments = self.ui.SegmentSelectorWidget.selectedSegmentIDs()
-    print(segments)
     OutItemID = shNode.GetItemByName("Out Levers")
     PosItemID = shNode.GetItemByName("Tooth Positions")
     Outchildren = []
     Poschildren = []
 
     for i in segments:
-      Outchildren.append(shNode.GetItemChildWithName(OutItemID, i))
-      Poschildren.append(shNode.GetItemChildWithName(PosItemID, i))
+      segname = segmentation.GetSegmentation().GetSegment(i).GetName()
+      Outchildren.append(shNode.GetItemChildWithName(OutItemID, segname))
+      Poschildren.append(shNode.GetItemChildWithName(PosItemID, segname))
 
     for i in Outchildren:
       child = i
