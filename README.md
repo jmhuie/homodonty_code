@@ -11,3 +11,14 @@ To run this code:
 1. Download the repository.
 2. Open the .Rproj file (you will have to [download RStudio](https://www.rstudio.com/) if you don't have it installed).
 3. Open the RUNME.R file and run the example code!
+
+To install FunctionalHomodonty for 3D Slicer
+
+1. Download the repository.
+2. Save the folder "Slicer-FunctionalHomodonty" on the Desktop or somewhere it can live for now.
+3. Open 3D Slicer.
+4. Navigate to the "Edit" button at the top, and click Application Settings
+5. A pop-up window should appear -- navigate to the Modules tab.
+6. Next to "additional module paths", drag and drop the "Slicer-FunctionalHomodonty" folder into the box with a list of modules.
+7. Restart 3D Slicer.
+8. The FunctionalHomodonty module should now be available to use under the Quanitification category or by searching for it.
