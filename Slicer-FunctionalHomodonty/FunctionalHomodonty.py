@@ -571,10 +571,10 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
     stats = segStatLogic.getStatistics()
 
     jointRAS = [0,]*3
-    pointNode.GetNthFiducialPosition(0,jointRAS)
+    pointNode.GetNthControlPointPosition(0,jointRAS)
 	# draw line representing jaw length
     jawtipRAS = [0,]*3
-    pointNode.GetNthFiducialPosition(1,jawtipRAS)
+    pointNode.GetNthControlPointPosition(1,jawtipRAS)
     lengthLine = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode", "JawLength")
     if lengthLine == None:
       lengthLine = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", "JawLength")
@@ -590,7 +590,7 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
 	
 	# draw line representing in-lever
     inleverRAS = [0,]*3
-    pointNode.GetNthFiducialPosition(2,inleverRAS)
+    pointNode.GetNthControlPointPosition(2,inleverRAS)
     leverLine = slicer.util.getFirstNodeByClassByName("vtkMRMLMarkupsLineNode", "InLever")
     if leverLine == None:
       leverLine = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", "InLever")
@@ -680,28 +680,9 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      closestPointOnSurface_World = [0,0,0]
      distanceFilter.EvaluateFunctionAndGetClosestPoint(obb_center_ras, closestPointOnSurface_World)
      #slicer.mrmlScene.RemoveNode(modelNode)
-     
-     # draw line between jaw joint and tooth
-     toothposRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
+     #toothposRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
      toothposRAS = closestPointOnSurface_World # draw to the tip of the tooth
-     ToothlineNode = shNode.GetItemDataNode(shNode.GetItemChildWithName(posFolder, segment.GetName()))
-     if ToothlineNode == None:
-       ToothlineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
-       ToothlineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
-       ToothlineNode.GetDisplayNode().SetSelectedColor((0, 0.72, 0.92))
-       ToothlineNode.GetDisplayNode().SetActiveColor((1, 0.65, 0.0))
-       ToothlineNode.AddControlPoint(jointRAS)
-       ToothlineNode.AddControlPoint(toothposRAS)
-       shNode.SetItemParent(shNode.GetItemByDataNode(ToothlineNode), posFolder)
-     ToothPos = ToothlineNode.GetMeasurement('length').GetValue()
-     PositionArray.InsertNextValue(ToothPos)
-     # auto hide the positions folder
-     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
-     pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
-     folderPlugin = pluginHandler.pluginByName("Folder")
-     if folderPlugin.getDisplayVisibility(posFolder) == 0:
-       folderPlugin.setDisplayVisibility(posFolder, 1)
-       folderPlugin.setDisplayVisibility(posFolder, 0)
+
      
      # try to find the tip of the tooth
      #obb_origin_ras = np.array(stats[segmentId,"LabelmapSegmentStatisticsPlugin.obb_origin_ras"])
@@ -746,20 +727,65 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      closestPointOnSurface_World = [0,0,0]
      distanceFilter.EvaluateFunctionAndGetClosestPoint(obb_center_ras, closestPointOnSurface_World)
      slicer.mrmlScene.RemoveNode(modelNode)
+     #toothoutRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
+     toothoutRAS = closestPointOnSurface_World # draw to the tip of the tooth
+     
+     jawvec = jointRAS[0]-jawtipRAS[0],jointRAS[1]-jawtipRAS[1],jointRAS[2]-jawtipRAS[2]
+     jawvec = np.array(jawvec)
+     posvec = toothposRAS[0]-jointRAS[0],toothposRAS[1]-jointRAS[1],toothposRAS[2]-jointRAS[2]
+     posvec = np.array(posvec)
+     t = np.dot(jawvec,posvec)/jawvec**2
+     jawvecpoint = jointRAS + t*jawvec
+     ToothPos = np.linalg.norm(np.array(toothposRAS)-np.array(jawvecpoint))
+     OutLever = np.linalg.norm(np.array(toothoutRAS)-np.array(jawvecpoint))
+     if (ToothPos > OutLever and jawID == "Lower Jaw"):
+       tmp1 = toothoutRAS
+       tmp2 = toothposRAS
+       toothoutRAS = tmp2
+       toothposRAS = tmp1
+     posvec = toothposRAS[0]-inleverRAS[0],toothposRAS[1]-inleverRAS[1],toothposRAS[2]-inleverRAS[2]
+     posvec = np.array(posvec)
+     t = np.dot(jawvec,posvec)/jawvec**2
+     jawvecpoint = inleverRAS + t*jawvec
+     ToothPos = np.linalg.norm(np.array(toothposRAS)-np.array(jawvecpoint))
+     OutLever = np.linalg.norm(np.array(toothoutRAS)-np.array(jawvecpoint))
+     if (ToothPos < OutLever and jawID == "Upper Jaw"):
+       tmp1 = toothoutRAS
+       tmp2 = toothposRAS
+       toothoutRAS = tmp2
+       toothposRAS = tmp1       
+     
+     # draw line between jaw joint and the base of the tooth
+     ToothPoslineNode = shNode.GetItemDataNode(shNode.GetItemChildWithName(posFolder, segment.GetName()))
+     if ToothPoslineNode == None:
+       ToothPoslineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
+       ToothPoslineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
+       ToothPoslineNode.GetDisplayNode().SetSelectedColor((0, 0.72, 0.92))
+       ToothPoslineNode.GetDisplayNode().SetActiveColor((1, 0.65, 0.0))
+       ToothPoslineNode.AddControlPoint(jointRAS)
+       ToothPoslineNode.AddControlPoint(toothposRAS)
+       shNode.SetItemParent(shNode.GetItemByDataNode(ToothPoslineNode), posFolder)
+     ToothPos = ToothPoslineNode.GetMeasurement('length').GetValue()
+     PositionArray.InsertNextValue(ToothPos)
+     # auto hide the positions folder
+     shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
+     pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
+     folderPlugin = pluginHandler.pluginByName("Folder")
+     if folderPlugin.getDisplayVisibility(posFolder) == 0:
+       folderPlugin.setDisplayVisibility(posFolder, 1)
+       folderPlugin.setDisplayVisibility(posFolder, 0)
      
      # draw line between jaw joint and tooth
-     toothoutRAS = stats[segmentId,"LabelmapSegmentStatisticsPlugin.centroid_ras"] # draw to the center of tooth
-     toothoutRAS = closestPointOnSurface_World # draw to the tip of the tooth
-     lineNode = shNode.GetItemDataNode(shNode.GetItemChildWithName(outFolder, segment.GetName()))
-     if lineNode == None:
-       lineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
-       lineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
-       lineNode.AddControlPoint(jointRAS)
-       lineNode.AddControlPoint(toothoutRAS)
-       shNode.SetItemParent(shNode.GetItemByDataNode(lineNode), outFolder)
+     ToothOutlineNode = shNode.GetItemDataNode(shNode.GetItemChildWithName(outFolder, segment.GetName()))
+     if ToothOutlineNode == None:
+       ToothOutlineNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
+       ToothOutlineNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
+       ToothOutlineNode.AddControlPoint(jointRAS)
+       ToothOutlineNode.AddControlPoint(toothoutRAS)
+       shNode.SetItemParent(shNode.GetItemByDataNode(ToothOutlineNode), outFolder)
      else: 
-       lineNode.SetNthControlPointPosition(0,jointRAS)     
-     OutLever = lineNode.GetMeasurement('length').GetValue()
+       ToothOutlineNode.SetNthControlPointPosition(0,jointRAS)     
+     OutLever = ToothOutlineNode.GetMeasurement('length').GetValue()
      # auto show the outlever folder
      shNode = slicer.mrmlScene.GetSubjectHierarchyNode()
      pluginHandler = slicer.qSlicerSubjectHierarchyPluginHandler().instance()
@@ -767,14 +793,15 @@ class FunctionalHomodontyLogic(ScriptedLoadableModuleLogic):
      if folderPlugin.getDisplayVisibility(outFolder) == 0:
        folderPlugin.setDisplayVisibility(outFolder, 1)
        folderPlugin.setDisplayVisibility(outFolder, 0)
+              
      
      RelPosArray.InsertNextValue(ToothPos/JawLength)
      
      # calculate tooth aspect ratio
      heightNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsLineNode", segment.GetName())
      heightNode.GetDisplayNode().SetPropertiesLabelVisibility(False)
-     heightNode.AddControlPoint(ToothlineNode.GetNthControlPointPosition(1))
-     heightNode.AddControlPoint(lineNode.GetNthControlPointPosition(1))
+     heightNode.AddControlPoint(ToothPoslineNode.GetNthControlPointPosition(1))
+     heightNode.AddControlPoint(ToothOutlineNode.GetNthControlPointPosition(1))
      ToothHeight = heightNode.GetMeasurement('length').GetValue()
      slicer.mrmlScene.RemoveNode(heightNode)
      #ToothHeight = obb_diameter_mm[2]
