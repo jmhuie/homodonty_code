@@ -328,7 +328,7 @@
       <string>Advanced</string>
      </property>
      <property name="collapsed">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <layout class="QFormLayout" name="formLayout_4">
       <item row="6" column="0" colspan="2">
@@ -337,7 +337,7 @@
          <string>Switch out-lever and tooth position lines:</string>
         </property>
         <property name="collapsed">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <layout class="QFormLayout" name="formLayout_4">
          <item row="1" column="0" colspan="2">
